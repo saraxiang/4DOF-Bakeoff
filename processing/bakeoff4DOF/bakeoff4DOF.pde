@@ -21,6 +21,10 @@ float screenTransY = 0;
 float screenRotation = 0;
 float screenZ = 50f;
 
+float prevMouseX = 0;
+float prevMouseY = 0;
+int phaseNum = 0;
+
 private class Target
 {
   float x = 0;
@@ -102,12 +106,12 @@ void draw() {
   
     //===========DRAW EXAMPLE CONTROLS=================
   fill(255);
-  scaffoldControlLogic(); //you are going to want to replace this!
+  scaffoldControlLogic(t); //you are going to want to replace this!
   text("Trial " + (trialIndex+1) + " of " +trialCount, width/2, inchesToPixels(.5f));
 }
 
 //my example design for control, which is terrible
-void scaffoldControlLogic()
+void scaffoldControlLogic(Target t)
 {
   //upper left corner, rotate counterclockwise
   text("CCW", inchesToPixels(.2f), inchesToPixels(.2f));
@@ -145,8 +149,34 @@ void scaffoldControlLogic()
   text("down", width/2, height-inchesToPixels(.2f));
   if (mousePressed && dist(width/2, height, mouseX, mouseY)<inchesToPixels(.5f))
     screenTransY+=inchesToPixels(.02f);
+  
+  if (phaseNum == 0) {
+    if (prevMouseX < mouseX) {
+      screenRotation = screenRotation + 2;
+    } else if (prevMouseX > mouseX) {
+      screenRotation = screenRotation - 2;
+    }
+    
+    if (calculateDifferenceBetweenAngles(t.rotation,screenRotation)<=5) {
+      drawCursor(100); //fill background if rotation is correct
+    }
+  }
+  
+  prevMouseX = mouseX;
+  prevMouseY = mouseY;
 }
 
+void drawCursor(int Color) {
+  pushMatrix();
+  translate(width/2, height/2); //center the drawing coordinates to the center of the screen
+  translate(screenTransX, screenTransY);
+  rotate(radians(screenRotation));
+  fill(Color);
+  strokeWeight(3f);
+  stroke(160);
+  rect(0,0, screenZ, screenZ);
+  popMatrix();
+}
 
 void mousePressed()
 {
@@ -160,19 +190,24 @@ void mousePressed()
 
 void mouseReleased()
 {
-  //check to see if user clicked middle of screen within 3 inches
-  if (dist(width/2, height/2, mouseX, mouseY)<inchesToPixels(3f))
-  {
-    if (userDone==false && !checkForSuccess())
-      errorCount++;
-
-    //and move on to next trial
-    trialIndex++;
-    
-    if (trialIndex==trialCount && userDone==false)
+  if (phaseNum < 3) {
+    phaseNum++;
+  } else if (phaseNum == 3) {
+    //check to see if user clicked middle of screen within 3 inches
+    if (dist(width/2, height/2, mouseX, mouseY)<inchesToPixels(3f))
     {
-      userDone = true;
-      finishTime = millis();
+      phaseNum = 0;
+      if (userDone==false && !checkForSuccess())
+        errorCount++;
+  
+      //and move on to next trial
+      trialIndex++;
+      
+      if (trialIndex==trialCount && userDone==false)
+      {
+        userDone = true;
+        finishTime = millis();
+      }
     }
   }
 }
