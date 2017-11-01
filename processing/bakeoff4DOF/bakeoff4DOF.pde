@@ -1,5 +1,6 @@
 import java.util.ArrayList;
 import java.util.Collections;
+import java.lang.*;
 
 //these are variables you should probably leave alone
 int index = 0;
@@ -24,6 +25,14 @@ float screenZ = 50f;
 float prevMouseX = 0;
 float prevMouseY = 0;
 int phaseNum = 0;
+
+int ROTATION_PHASE = 0;
+int ZOOM_PHASE = 1;
+int MOVE_PHASE = 2;
+
+float prevX;
+float prevY;
+Target t;
 
 private class Target
 {
@@ -50,6 +59,9 @@ void setup() {
   //don't change this! 
   border = inchesToPixels(.3f); //padding of 0.3 inches
 
+  prevX = (float)mouseX;
+  prevY = (float)mouseY;
+
   for (int i=0; i<trialCount; i++) //don't change this! 
   {
     Target t = new Target();
@@ -65,7 +77,9 @@ void setup() {
   Collections.shuffle(targets); // randomize the order of the button; don't change this.
 }
 
-
+// void print(float s) {
+//   System.out.println(Float.toString(s));
+// }
 
 void draw() {
 
@@ -86,7 +100,7 @@ void draw() {
   //===========DRAW TARGET SQUARE=================
   pushMatrix();
   translate(width/2, height/2); //center the drawing coordinates to the center of the screen
-  Target t = targets.get(trialIndex);
+  t = targets.get(trialIndex);
   translate(t.x, t.y); //center the drawing coordinates to the center of the screen
   rotate(radians(t.rotation));
   fill(255, 0, 0); //set color to semi translucent
@@ -149,21 +163,24 @@ void scaffoldControlLogic(Target t)
   text("down", width/2, height-inchesToPixels(.2f));
   if (mousePressed && dist(width/2, height, mouseX, mouseY)<inchesToPixels(.5f))
     screenTransY+=inchesToPixels(.02f);
-  
-  if (phaseNum == 0) {
-    if (prevMouseX < mouseX) {
-      screenRotation = screenRotation + 2;
-    } else if (prevMouseX > mouseX) {
-      screenRotation = screenRotation - 2;
-    }
-    
+
+  if (phaseNum == ROTATION_PHASE) {  
     if (calculateDifferenceBetweenAngles(t.rotation,screenRotation)<=5) {
       drawCursor(100); //fill background if rotation is correct
     }
   }
-  
-  prevMouseX = mouseX;
-  prevMouseY = mouseY;
+
+  if (phaseNum == ZOOM_PHASE) {  
+    if (abs(t.z - screenZ)<inchesToPixels(.05f)) {
+      drawCursor(100); //fill background if rotation is correct
+    }
+  }
+
+  if (phaseNum == MOVE_PHASE) {
+    if (dist(t.x,t.y,screenTransX,screenTransY)<inchesToPixels(.05f)) {
+      drawCursor(100);
+    }
+  }
 }
 
 void drawCursor(int Color) {
@@ -185,6 +202,42 @@ void mousePressed()
       startTime = millis();
       println("time started!");
     }
+}
+
+void mouseMoved() {
+  float currX = (float)mouseX - 350.0;
+  float currY = (float)mouseY - 350.0;
+  //println(currX);
+  //println(mouseX);
+  // PVector currRot = new PVector(currX, currY);
+  // PVector prevRot = new PVector(prevX, prevY);
+
+  double angle = (Math.atan2(currY, currX) - Math.atan2(prevY, prevX));
+  if (abs((float)angle) > 3) {
+    angle = angle/100;
+  }
+
+  prevX = currX;
+  prevY = currY;
+  //println(30*angle);
+  // rotation:
+  // rotation of frame matches cursor's relatiev angle with center of frame
+  if (phaseNum == ROTATION_PHASE) {
+    screenRotation += 30*(float)angle;
+  }
+
+  else if (phaseNum == ZOOM_PHASE) {
+    screenZ += (float)angle * 10;
+    println("angle: "+angle);
+    println("screenZ: "+screenZ);
+  }
+
+  else if (phaseNum == MOVE_PHASE) {
+    screenTransX = mouseX - 350;
+    screenTransY = mouseY - 350;
+  }
+  prevMouseX = mouseX;
+  prevMouseY = mouseY;
 }
 
 
@@ -215,16 +268,16 @@ void mouseReleased()
 //probably shouldn't modify this, but email me if you want to for some good reason.
 public boolean checkForSuccess()
 {
-	Target t = targets.get(trialIndex);	
-	boolean closeDist = dist(t.x,t.y,screenTransX,screenTransY)<inchesToPixels(.05f); //has to be within .1"
+  Target t = targets.get(trialIndex); 
+  boolean closeDist = dist(t.x,t.y,screenTransX,screenTransY)<inchesToPixels(.05f); //has to be within .1"
   boolean closeRotation = calculateDifferenceBetweenAngles(t.rotation,screenRotation)<=5;
-	boolean closeZ = abs(t.z - screenZ)<inchesToPixels(.05f); //has to be within .1"	
-	
+  boolean closeZ = abs(t.z - screenZ)<inchesToPixels(.05f); //has to be within .1"  
+  
   println("Close Enough Distance: " + closeDist + " (cursor X/Y = " + t.x + "/" + t.y + ", target X/Y = " + screenTransX + "/" + screenTransY +")");
   println("Close Enough Rotation: " + closeRotation + " (rot dist="+calculateDifferenceBetweenAngles(t.rotation,screenRotation)+")");
- 	println("Close Enough Z: " +  closeZ + " (cursor Z = " + t.z + ", target Z = " + screenZ +")");
-	
-	return closeDist && closeRotation && closeZ;	
+  println("Close Enough Z: " +  closeZ + " (cursor Z = " + t.z + ", target Z = " + screenZ +")");
+  
+  return closeDist && closeRotation && closeZ;  
 }
 
 //utility function I include
