@@ -1,6 +1,26 @@
-import java.util.ArrayList;
-import java.util.Collections;
-import java.lang.*;
+import processing.core.*; 
+import processing.data.*; 
+import processing.event.*; 
+import processing.opengl.*; 
+
+import java.util.ArrayList; 
+import java.util.Collections; 
+import java.lang.*; 
+
+import java.util.HashMap; 
+import java.util.ArrayList; 
+import java.io.File; 
+import java.io.BufferedReader; 
+import java.io.PrintWriter; 
+import java.io.InputStream; 
+import java.io.OutputStream; 
+import java.io.IOException; 
+
+public class bakeoff4DOF extends PApplet {
+
+
+
+
 
 //these are variables you should probably leave alone
 int index = 0;
@@ -44,13 +64,13 @@ private class Target
 
 ArrayList<Target> targets = new ArrayList<Target>();
 
-float inchesToPixels(float inch)
+public float inchesToPixels(float inch)
 {
   return inch*screenPPI;
 }
 
-void setup() {
-  size(700,700); 
+public void setup() {
+   
 
   rectMode(CENTER);
   textFont(createFont("Arial", inchesToPixels(.2f))); //sets the font to Arial that is .3" tall
@@ -81,7 +101,7 @@ void setup() {
 //   System.out.println(Float.toString(s));
 // }
 
-void draw() {
+public void draw() {
 
   background(60); //background is dark grey
   fill(200);
@@ -128,7 +148,7 @@ void draw() {
 }
 
 //my example design for control, which is terrible
-void scaffoldControlLogic(Target t)
+public void scaffoldControlLogic(Target t)
 {
   //upper left corner, rotate counterclockwise
   text("CCW", inchesToPixels(.2f), inchesToPixels(.2f));
@@ -186,7 +206,7 @@ void scaffoldControlLogic(Target t)
   }
 }
 
-void drawCursor(int Color) {
+public void drawCursor(int Color) {
   pushMatrix();
   translate(width/2, height/2); //center the drawing coordinates to the center of the screen
   translate(screenTransX, screenTransY);
@@ -198,7 +218,7 @@ void drawCursor(int Color) {
   popMatrix();
 }
 
-void mousePressed()
+public void mousePressed()
 {
     if (startTime == 0) //start time on the instant of the first user click
     {
@@ -207,9 +227,9 @@ void mousePressed()
     }
 }
 
-void mouseMoved() {
-  float currX = (float)mouseX - 350.0;
-  float currY = (float)mouseY - 350.0;
+public void mouseMoved() {
+  float currX = (float)mouseX - 350.0f;
+  float currY = (float)mouseY - 350.0f;
   //println(currX);
   //println(mouseX);
   // PVector currRot = new PVector(currX, currY);
@@ -244,7 +264,7 @@ void mouseMoved() {
 }
 
 
-void mouseReleased()
+public void mouseReleased()
 {
   if (phaseNum < 3) {
     phaseNum++;
@@ -284,7 +304,7 @@ public boolean checkForSuccess()
 }
 
 //utility function I include
-double calculateDifferenceBetweenAngles(float a1, float a2)
+public double calculateDifferenceBetweenAngles(float a1, float a2)
   {
      double diff=abs(a1-a2);
       diff%=90;
@@ -293,3 +313,13 @@ double calculateDifferenceBetweenAngles(float a1, float a2)
       else
         return diff;
  }
+  public void settings() {  size(700,700); }
+  static public void main(String[] passedArgs) {
+    String[] appletArgs = new String[] { "bakeoff4DOF" };
+    if (passedArgs != null) {
+      PApplet.main(concat(appletArgs, passedArgs));
+    } else {
+      PApplet.main(appletArgs);
+    }
+  }
+}
