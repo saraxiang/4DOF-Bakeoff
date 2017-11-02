@@ -134,7 +134,10 @@ void draw() {
   
   if (phaseNum == ROTATION_AND_ZOOM_PHASE) {
     drawCorrect(t);
-  }
+  } else if (phaseNum == MOVE_PHASE) {
+    screenTransX = mouseX - 350;
+    screenTransY = mouseY - 350;
+  } 
 }
 
 void signalWhenCorrect(Target t)
