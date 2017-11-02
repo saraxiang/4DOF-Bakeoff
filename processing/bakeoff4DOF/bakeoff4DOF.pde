@@ -26,9 +26,8 @@ float prevMouseX = 0;
 float prevMouseY = 0;
 int phaseNum = 0;
 
-int ROTATION_PHASE = 0;
-int ZOOM_PHASE = 1;
-int MOVE_PHASE = 2;
+int ROTATION_AND_ZOOM_PHASE = 0;
+int MOVE_PHASE = 1;
 
 float prevX;
 float prevY;
@@ -96,16 +95,26 @@ void draw() {
     text("User took " + ((finishTime-startTime)/1000f/trialCount+(errorCount*errorPenalty)) + " sec per target inc. penalty", width/2, inchesToPixels(.2f)*4);
     return;
   }
+  
+  if (phaseNum == ROTATION_AND_ZOOM_PHASE) {
+    drawController();
+  }
 
   //===========DRAW TARGET SQUARE=================
-  pushMatrix();
-  translate(width/2, height/2); //center the drawing coordinates to the center of the screen
   t = targets.get(trialIndex);
-  translate(t.x, t.y); //center the drawing coordinates to the center of the screen
-  rotate(radians(t.rotation));
-  fill(255, 0, 0); //set color to semi translucent
-  rect(0, 0, t.z, t.z);
-  popMatrix();
+  if (phaseNum == MOVE_PHASE) {
+    pushMatrix();
+    translate(width/2, height/2); //center the drawing coordinates to the center of the screen
+    translate(t.x, t.y); //center the drawing coordinates to the center of the screen
+    rotate(radians(t.rotation));
+    fill(255, 0, 0); //set color to semi translucent
+    rect(0, 0, t.z, t.z);
+    
+    //mark the center with the appropriate margin of error 
+    fill(255,255,255);
+    rect(0, 0,inchesToPixels(.05f), inchesToPixels(.05f));
+    popMatrix();
+  }
 
   //===========DRAW CURSOR SQUARE=================
   pushMatrix();
@@ -117,64 +126,21 @@ void draw() {
   stroke(160);
   rect(0,0, screenZ, screenZ);
   popMatrix();
-
-  //===========DRAW CENTER===========
-  point(350,350);
   
-    //===========DRAW EXAMPLE CONTROLS=================
+  //===========DRAW CONTROLS=================
   fill(255);
-  scaffoldControlLogic(t); //you are going to want to replace this!
+  signalWhenCorrect(t);
   text("Trial " + (trialIndex+1) + " of " +trialCount, width/2, inchesToPixels(.5f));
+  
+  if (phaseNum == ROTATION_AND_ZOOM_PHASE) {
+    drawCorrect(t);
+  }
 }
 
-//my example design for control, which is terrible
-void scaffoldControlLogic(Target t)
+void signalWhenCorrect(Target t)
 {
-  //upper left corner, rotate counterclockwise
-  text("CCW", inchesToPixels(.2f), inchesToPixels(.2f));
-  if (mousePressed && dist(0, 0, mouseX, mouseY)<inchesToPixels(.5f))
-    screenRotation--;
-
-  //upper right corner, rotate clockwise
-  text("CW", width-inchesToPixels(.2f), inchesToPixels(.2f));
-  if (mousePressed && dist(width, 0, mouseX, mouseY)<inchesToPixels(.5f))
-    screenRotation++;
-
-  //lower left corner, decrease Z
-  text("-", inchesToPixels(.2f), height-inchesToPixels(.2f));
-  if (mousePressed && dist(0, height, mouseX, mouseY)<inchesToPixels(.5f))
-    screenZ-=inchesToPixels(.02f);
-
-  //lower right corner, increase Z
-  text("+", width-inchesToPixels(.2f), height-inchesToPixels(.2f));
-  if (mousePressed && dist(width, height, mouseX, mouseY)<inchesToPixels(.5f))
-    screenZ+=inchesToPixels(.02f);
-
-  //left middle, move left
-  text("left", inchesToPixels(.2f), height/2);
-  if (mousePressed && dist(0, height/2, mouseX, mouseY)<inchesToPixels(.5f))
-    screenTransX-=inchesToPixels(.02f);
-
-  text("right", width-inchesToPixels(.2f), height/2);
-  if (mousePressed && dist(width, height/2, mouseX, mouseY)<inchesToPixels(.5f))
-    screenTransX+=inchesToPixels(.02f);
-  
-  text("up", width/2, inchesToPixels(.2f));
-  if (mousePressed && dist(width/2, 0, mouseX, mouseY)<inchesToPixels(.5f))
-    screenTransY-=inchesToPixels(.02f);
-  
-  text("down", width/2, height-inchesToPixels(.2f));
-  if (mousePressed && dist(width/2, height, mouseX, mouseY)<inchesToPixels(.5f))
-    screenTransY+=inchesToPixels(.02f);
-
-  if (phaseNum == ROTATION_PHASE) {  
-    if (calculateDifferenceBetweenAngles(t.rotation,screenRotation)<=5) {
-      drawCursor(100); //fill background if rotation is correct
-    }
-  }
-
-  if (phaseNum == ZOOM_PHASE) {  
-    if (abs(t.z - screenZ)<inchesToPixels(.05f)) {
+  if (phaseNum == ROTATION_AND_ZOOM_PHASE) {  
+    if (calculateDifferenceBetweenAngles(t.rotation,screenRotation)<=5 && abs(t.z - screenZ)<inchesToPixels(.05f)) {
       drawCursor(100); //fill background if rotation is correct
     }
   }
@@ -184,6 +150,31 @@ void scaffoldControlLogic(Target t)
       drawCursor(100);
     }
   }
+}
+
+void drawController() {
+  pushMatrix();
+  translate(width/2, height/2);
+  fill(150, 150, 0); 
+  strokeWeight(0f);
+  rect(0, 0, 360, 400);
+  popMatrix();
+}
+
+void drawCorrect(Target t) {
+  //90/5 = 18 different possible screen rotations
+  //20 * 18 = 360 width ==> 350 - (360/2) = 170 starting x position
+  //screenRotation = ((mouseX - 170) / 20) * 5;
+  //20 different size options
+  //20 * 20 = 400 height ==> 350 - (400/2) = 150 starting y position
+  //screenZ = ((mouseY - 150) / 20 + 1) * inchesToPixels(.15f);
+  pushMatrix();
+  translate(170 + 10, 150 + 10);
+  translate(t.rotation % 90 / 5 * 20, (t.z / inchesToPixels(.15f) - 1) * 20);
+  fill(230,230,250); 
+  strokeWeight(0f);
+  rect(0, 0, 20, 20);
+  popMatrix();
 }
 
 void drawCursor(int Color) {
@@ -207,51 +198,27 @@ void mousePressed()
     }
 }
 
-void mouseMoved() {
-  float currX = (float)mouseX - 350.0;
-  float currY = (float)mouseY - 350.0;
-  //println(currX);
-  //println(mouseX);
-  // PVector currRot = new PVector(currX, currY);
-  // PVector prevRot = new PVector(prevX, prevY);
-
-  double angle = (Math.atan2(currY, currX) - Math.atan2(prevY, prevX));
-  if (abs((float)angle) > 3) {
-    angle = angle/100;
-  }
-
-  prevX = currX;
-  prevY = currY;
-  //println(30*angle);
-  // rotation:
-  // rotation of frame matches cursor's relatiev angle with center of frame
-  if (phaseNum == ROTATION_PHASE) {
-    screenRotation += 50*(float)angle;
-  }
-
-  else if (phaseNum == ZOOM_PHASE) {
-    screenZ += (float)angle * 50;
-    println("angle: "+angle);
-    println("screenZ: "+screenZ);
-  }
-
-  else if (phaseNum == MOVE_PHASE) {
+void mouseMoved() {  
+  if (phaseNum == ROTATION_AND_ZOOM_PHASE) {
+    if (mouseX >= 170 && mouseX <= 530 && mouseY >= 150 && mouseY <= 550) {
+      screenRotation = ((mouseX - 170) / 20) * 5;
+      println("rotation: " + screenRotation);
+      screenZ = ((mouseY - 150) / 20 + 1) * inchesToPixels(.15f);
+      println("Z: " + screenZ);
+      println("correct rotation: " + t.rotation );
+      println("correct Z: " + t.z);
+    }
+  } else if (phaseNum == MOVE_PHASE) {
     screenTransX = mouseX - 350;
     screenTransY = mouseY - 350;
   }
-  prevMouseX = mouseX;
-  prevMouseY = mouseY;
 }
-
 
 void mouseReleased()
 {
-  if (phaseNum < 3) {
+  if (phaseNum == 0) {
     phaseNum++;
-  } else if (phaseNum == 3) {
-    //check to see if user clicked middle of screen within 3 inches
-    if (dist(width/2, height/2, mouseX, mouseY)<inchesToPixels(3f))
-    {
+  } else if (phaseNum == 1) {
       phaseNum = 0;
       if (userDone==false && !checkForSuccess())
         errorCount++;
@@ -264,7 +231,6 @@ void mouseReleased()
         userDone = true;
         finishTime = millis();
       }
-    }
   }
 }
 
