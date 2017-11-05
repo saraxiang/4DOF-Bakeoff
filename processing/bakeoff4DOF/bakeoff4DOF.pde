@@ -210,14 +210,17 @@ void signalWhenCorrect(Target t)
   }
 
   if (phaseNum == MOVE_PHASE) {
-    inplay = false;
-    play = false;
+    //inplay = false;
+    //play = false;
     if (dist(t.x,t.y,screenTransX,screenTransY)<inchesToPixels(.05f)) {
       drawCursor(100);
       backgroundFlash = true;
+      play = true;
     }
     else {
+      inplay = false;
       backgroundFlash = false;
+      play = false;
     }
   }
 }
@@ -305,12 +308,16 @@ void mouseMoved() {
 void mouseReleased()
 {
   if (phaseNum == 0) {
-    phaseNum++;
+
     // correct move
     if (calculateDifferenceBetweenAngles(t.rotation,screenRotation)<=5 && abs(t.z - screenZ)<inchesToPixels(.05f)) {
       correct.play();
+      phaseNum++;
     }
-    // wrong move
+    // wrong move, show back button
+    
+    
+
   } else if (phaseNum == 1) {
       phaseNum = 0;
       if (userDone==false && !checkForSuccess())
