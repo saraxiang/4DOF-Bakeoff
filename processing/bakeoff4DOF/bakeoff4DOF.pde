@@ -177,9 +177,9 @@ void draw() {
     screenTransX = mouseX - 350;
     screenTransY = mouseY - 350;
   }
-  // if (!inplay) {
-  //   playSound(); 
-  // }
+  if (!inplay) {
+    playSound(); 
+  }
 }
 
 void playSound() {
