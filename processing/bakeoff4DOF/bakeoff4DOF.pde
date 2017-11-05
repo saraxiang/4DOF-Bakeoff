@@ -29,6 +29,8 @@ int phaseNum = 0;
 
 int ROTATION_AND_ZOOM_PHASE = 0;
 int MOVE_PHASE = 1;
+int BACK_1 = -1;
+int BACK_2 = -2;
 
 float prevX;
 float prevY;
@@ -53,6 +55,8 @@ SoundFile alert = new SoundFile(this, alertPath);
 boolean play = false;
 boolean inplay = false;
 
+boolean hovered = false;
+boolean showBack = false;
 
 private class Target
 {
@@ -165,6 +169,11 @@ void draw() {
   fill(255);
   signalWhenCorrect(t);
   text("Trial " + (trialIndex+1) + " of " +trialCount, width/2, inchesToPixels(.5f));
+
+  //===========DRAW BACK BUTTON===============
+  if (showBack) {
+    drawButton();
+  }
   
   if (phaseNum == ROTATION_AND_ZOOM_PHASE) {
     // line to correct dot
@@ -248,6 +257,21 @@ void drawController() {
   popMatrix();
 }
 
+void drawButton() {
+  pushMatrix();
+  translate(width/2, height/2);
+  
+  if (hovered) {
+    fill(100,100,100);
+  }
+
+  fill(150,150,150);
+
+  strokeWeight(0f);
+  rect(0, 0, 360, 400);
+  popMatrix();
+}
+
 void drawCorrect(Target t) {
   //90/5 = 18 different possible screen rotations
   //20 * 18 = 360 width ==> 350 - (360/2) = 170 starting x position
@@ -303,37 +327,89 @@ void mouseMoved() {
     screenTransX = mouseX - 350;
     screenTransY = mouseY - 350;
   }
+
+  else if (phaseNum == -1) {
+      if (mouseX >= width/2 - 180 && mouseX <= width/2 + 180 && mouseY >= height/2-180 && mouseY <= height/2+180) {
+        hovered = true;
+      }
+      hovered = false;
+  }
 }
 
 void mouseReleased()
 {
-  if (phaseNum == 0) {
+  if (phaseNum == ROTATION_AND_ZOOM_PHASE) {
 
     // correct move
     if (calculateDifferenceBetweenAngles(t.rotation,screenRotation)<=5 && abs(t.z - screenZ)<inchesToPixels(.05f)) {
       correct.play();
       phaseNum++;
+      showBack = false;
     }
     // wrong move, show back button
-    
-    
+    else {
+      phaseNum = BACK_1;
+      showBack = true;
+    }
 
-  } else if (phaseNum == 1) {
+  } else if (phaseNum == MOVE_PHASE) {
       phaseNum = 0;
-      if (userDone==false && !checkForSuccess())
-        errorCount++;
-      else {
-        correct.play();
+      if (userDone==false && !checkForSuccess()) {
+        showBack = true;
+        phaseNum = BACK_2;
       }
-      //and move on to next trial
-      trialIndex++;
-      
+
+      else {
+        showBack = false;
+        correct.play();
+
+        //and move on to next trial
+        trialIndex++;
+        
+        if (trialIndex==trialCount && userDone==false)
+        {
+          userDone = true;
+          finishTime = millis();
+        }
+        backgroundFlash = false;
+      }
+
+  }
+
+  else if (phaseNum == BACK_1) {
+    // if back button is clicked 
+    if (mouseX >= width/2 - 180 && mouseX <= width/2 + 180 && mouseY >= height/2-180 && mouseY <= height/2+180) {
+      phaseNum ++;
+    }
+
+    // else
+    else {
+      phaseNum = MOVE_PHASE;
+    }
+
+    showBack = false;
+  }
+
+  else if (phaseNum == BACK_2) {
+    // revert to move phase
+    if (mouseX >= width/2 - 180 && mouseX <= width/2 + 180 && mouseY >= height/2-180 && mouseY <= height/2+180) {
+      phaseNum = MOVE_PHASE;
+    }
+
+    // else, proceed
+    else {
+      phaseNum = ROTATION_AND_ZOOM_PHASE;
+      errorCount++;
+      trialIndex ++;
       if (trialIndex==trialCount && userDone==false)
       {
         userDone = true;
         finishTime = millis();
       }
       backgroundFlash = false;
+    }
+
+    showBack = false;
   }
 }
 
