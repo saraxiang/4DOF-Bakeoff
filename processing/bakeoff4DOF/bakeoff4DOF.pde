@@ -1,6 +1,7 @@
 import java.util.ArrayList;
 import java.util.Collections;
 import java.lang.*;
+import processing.sound.*;
 
 //these are variables you should probably leave alone
 int index = 0;
@@ -32,6 +33,26 @@ int MOVE_PHASE = 1;
 float prevX;
 float prevY;
 Target t;
+float targetX;
+float targetY;
+
+// correct dot properties
+float cdotX;
+float cdotY;
+
+boolean controllerFlash;
+boolean backgroundFlash;
+int change; // counter for flash delay
+
+// correct sound
+String alertPath = "/Users/tianjunma/Documents/Academic/F17/05-391/4DOF-Bakeoff/processing/bakeoff4DOF/alert.mp3";
+String correctPath = "/Users/tianjunma/Documents/Academic/F17/05-391/4DOF-Bakeoff/processing/bakeoff4DOF/correct.wav";
+SoundFile correct = new SoundFile(this, correctPath);
+SoundFile alert = new SoundFile(this, alertPath);
+
+boolean play = false;
+boolean inplay = false;
+
 
 private class Target
 {
@@ -76,14 +97,24 @@ void setup() {
   Collections.shuffle(targets); // randomize the order of the button; don't change this.
 }
 
-// void print(float s) {
-//   System.out.println(Float.toString(s));
-// }
-
 void draw() {
 
-  background(60); //background is dark grey
+  if (backgroundFlash) {
+    if (change >= 5) {
+      background(200,200,200);
+      change = 0;
+    }
+    else {
+      change++;
+      background(50,50,50);
+    }
+  }
+  else {
+    background(60); //background is dark grey
+  }
+
   fill(200);
+
   noStroke();
 
   //shouldn't really modify this printout code unless there is a really good reason to
@@ -109,6 +140,9 @@ void draw() {
     rotate(radians(t.rotation));
     fill(255, 0, 0); //set color to semi translucent
     rect(0, 0, t.z, t.z);
+
+    targetX = width/2 + t.x;
+    targetY = height/2 + t.y;
     
     //mark the center with the appropriate margin of error 
     fill(255,255,255);
@@ -133,24 +167,57 @@ void draw() {
   text("Trial " + (trialIndex+1) + " of " +trialCount, width/2, inchesToPixels(.5f));
   
   if (phaseNum == ROTATION_AND_ZOOM_PHASE) {
+    // line to correct dot
+    fill(255,255,255);
+    line(mouseX, mouseY, cdotX, cdotY);
+    //fill(255);
     drawCorrect(t);
   } else if (phaseNum == MOVE_PHASE) {
+    line(mouseX, mouseY, targetX, targetY);
     screenTransX = mouseX - 350;
     screenTransY = mouseY - 350;
-  } 
+  }
+  // if (!inplay) {
+  //   playSound(); 
+  // }
 }
 
+void playSound() {
+  if (play) {
+    alert.play();
+    inplay = true;
+  }
+  else {
+    alert.stop();
+    inplay = false;
+  }
+
+}
 void signalWhenCorrect(Target t)
 {
-  if (phaseNum == ROTATION_AND_ZOOM_PHASE) {  
+  if (phaseNum == ROTATION_AND_ZOOM_PHASE) {
     if (calculateDifferenceBetweenAngles(t.rotation,screenRotation)<=5 && abs(t.z - screenZ)<inchesToPixels(.05f)) {
       drawCursor(100); //fill background if rotation is correct
+      controllerFlash = true;
+      play = true;
+    }
+    else {
+      inplay = false;
+      controllerFlash = false;
+      play = false;
+      //alert.stop();
     }
   }
 
   if (phaseNum == MOVE_PHASE) {
+    inplay = false;
+    play = false;
     if (dist(t.x,t.y,screenTransX,screenTransY)<inchesToPixels(.05f)) {
       drawCursor(100);
+      backgroundFlash = true;
+    }
+    else {
+      backgroundFlash = false;
     }
   }
 }
@@ -158,7 +225,21 @@ void signalWhenCorrect(Target t)
 void drawController() {
   pushMatrix();
   translate(width/2, height/2);
-  fill(150, 150, 0); 
+  
+  if (controllerFlash) {
+    if (change >= 5) {
+      fill (200,200,200);
+      change = 0;
+    }
+    else {
+      change++;
+      fill (50,50,50);
+    }
+  }
+  else {
+    fill(150, 150, 0); 
+  }
+
   strokeWeight(0f);
   rect(0, 0, 360, 400);
   popMatrix();
@@ -172,9 +253,11 @@ void drawCorrect(Target t) {
   //20 * 20 = 400 height ==> 350 - (400/2) = 150 starting y position
   //screenZ = ((mouseY - 150) / 20 + 1) * inchesToPixels(.15f);
   pushMatrix();
-  translate(170 + 10, 150 + 10);
-  translate(t.rotation % 90 / 5 * 20, (t.z / inchesToPixels(.15f) - 1) * 20);
-  fill(230,230,250); 
+  //translate(170 + 10, 150 + 10);
+  cdotX = 170 + 10+t.rotation % 90 / 5 * 20;
+  cdotY = 150 + 10+(t.z / inchesToPixels(.15f) - 1) * 20;
+  translate(cdotX, cdotY);
+  fill(25,25,25); 
   strokeWeight(0f);
   rect(0, 0, 20, 20);
   popMatrix();
@@ -210,7 +293,9 @@ void mouseMoved() {
       println("Z: " + screenZ);
       println("correct rotation: " + t.rotation );
       println("correct Z: " + t.z);
+
     }
+
   } else if (phaseNum == MOVE_PHASE) {
     screenTransX = mouseX - 350;
     screenTransY = mouseY - 350;
@@ -221,11 +306,18 @@ void mouseReleased()
 {
   if (phaseNum == 0) {
     phaseNum++;
+    // correct move
+    if (calculateDifferenceBetweenAngles(t.rotation,screenRotation)<=5 && abs(t.z - screenZ)<inchesToPixels(.05f)) {
+      correct.play();
+    }
+    // wrong move
   } else if (phaseNum == 1) {
       phaseNum = 0;
       if (userDone==false && !checkForSuccess())
         errorCount++;
-  
+      else {
+        correct.play();
+      }
       //and move on to next trial
       trialIndex++;
       
@@ -234,6 +326,7 @@ void mouseReleased()
         userDone = true;
         finishTime = millis();
       }
+      backgroundFlash = false;
   }
 }
 
