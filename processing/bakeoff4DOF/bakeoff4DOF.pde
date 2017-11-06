@@ -57,6 +57,7 @@ boolean inplay = false;
 
 boolean hovered = false;
 boolean showBack = false;
+boolean proceed = false;
 
 private class Target
 {
@@ -328,7 +329,7 @@ void mouseMoved() {
     screenTransY = mouseY - 350;
   }
 
-  else if (phaseNum == -1) {
+  else if (phaseNum == BACK_1) {
       if (mouseX >= width/2 - 180 && mouseX <= width/2 + 180 && mouseY >= height/2-180 && mouseY <= height/2+180) {
         hovered = true;
       }
@@ -338,6 +339,8 @@ void mouseMoved() {
 
 void mouseReleased()
 {
+  println(phaseNum);
+  alert.stop();
   if (phaseNum == ROTATION_AND_ZOOM_PHASE) {
 
     // correct move
@@ -353,15 +356,23 @@ void mouseReleased()
     }
 
   } else if (phaseNum == MOVE_PHASE) {
+      println("move");
       phaseNum = 0;
-      if (userDone==false && !checkForSuccess()) {
-        showBack = true;
-        phaseNum = BACK_2;
+      if (userDone==false && !(dist(t.x,t.y,screenTransX,screenTransY)<inchesToPixels(.05f))) {
+          println("here");
+          showBack = true;
+          phaseNum = BACK_2;
       }
 
       else {
+        println("not match");
         showBack = false;
-        correct.play();
+        if (checkForSuccess()) {
+          correct.play();
+        }
+        else {
+          errorCount++;
+        }
 
         //and move on to next trial
         trialIndex++;
@@ -372,6 +383,7 @@ void mouseReleased()
           finishTime = millis();
         }
         backgroundFlash = false;
+        proceed = false;
       }
 
   }
@@ -385,6 +397,7 @@ void mouseReleased()
     // else
     else {
       phaseNum = MOVE_PHASE;
+      showBack = false;
     }
 
     showBack = false;
@@ -399,6 +412,7 @@ void mouseReleased()
     // else, proceed
     else {
       phaseNum = ROTATION_AND_ZOOM_PHASE;
+      proceed = true;
       errorCount++;
       trialIndex ++;
       if (trialIndex==trialCount && userDone==false)
